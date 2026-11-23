@@ -1,0 +1,53 @@
+// Prisma schema. Docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role{
+  PROVIDER
+  ADMIN
+}
+
+enum AuditAction{
+  LOGIN_SUCCESS
+  LOGIN_FAILURE
+  LOGUT
+  SESSION_EXPIRED
+}
+
+model Provider {
+  id           String    @id @default(uuid()) @db.Uuid
+  email        String    @unique
+  passwordHash String
+  firstName    String
+  lastName     String
+  specialty    String?
+  timezone     String    @default("America/New_York")
+  role         Role      @default(PROVIDER)
+  isActive     Boolean   @default(true)
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  auditLogs AuditLog[]
+}
+
+model AuditLog {
+  id        String      @id @default(uuid()) @db.Uuid
+  actorId   String?     @db.Uuid
+  actor     Provider?   @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  action    AuditAction
+  ipAddress String?
+  userAgent String?
+  metadata  Json?
+  createdAt DateTime    @default(now())
+
+  @@index([actorId])
+  @@index([createdAt])
+}
