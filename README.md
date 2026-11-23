@@ -54,3 +54,6 @@ Then open http://localhost:5173.
 
 A note on security
 I'm following some habits from healthcare software, like keeping an audit log and signing people out after a period of inactivity. This is a demo with fake data, though, and it isn't HIPAA compliant.
+
+Here is a screenshot of the login UI, it currently isn't connected to the back end 
+<img width="1359" height="794" alt="Screenshot 2026-11-23 at 12 03 34 AM" src="https://github.com/user-attachments/assets/92131c7d-7488-434d-a5bb-37bd49f7fa4e" />
