@@ -17,7 +17,7 @@ enum Role{
 enum AuditAction{
   LOGIN_SUCCESS
   LOGIN_FAILURE
-  LOGUT
+  LOGOUT
   SESSION_EXPIRED
 }
 
