@@ -9,16 +9,42 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum Role{
+enum Role {
   PROVIDER
   ADMIN
 }
 
-enum AuditAction{
+enum AuditAction {
   LOGIN_SUCCESS
   LOGIN_FAILURE
   LOGOUT
   SESSION_EXPIRED
+}
+
+enum AppointmentStatus {
+  SCHEDULED
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+enum IntakeStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETE
+}
+
+model Patient {
+  id          String   @id @default(uuid()) @db.Uuid
+  firstName   String
+  lastName    String
+  dateOfBirth DateTime @db.Date
+  email       String?
+  phone       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  appointments Appointment[]
 }
 
 model Provider {
@@ -35,7 +61,9 @@ model Provider {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
-  auditLogs AuditLog[]
+  auditLogs         AuditLog[]
+  availabilityRules AvailabilityRule[]
+  appointments      Appointment[]
 }
 
 model AuditLog {
@@ -50,4 +78,56 @@ model AuditLog {
 
   @@index([actorId])
   @@index([createdAt])
+}
+
+model VisitType {
+  id              String @id @default(uuid()) @db.Uuid
+  name            String
+  durationMinutes Int
+
+  appointments Appointment[]
+}
+
+// One block of working hours, e.g. Monday 9:00 to 17:00 in the provider's timezone.
+model AvailabilityRule {
+  id           String   @id @default(uuid()) @db.Uuid
+  providerId   String   @db.Uuid
+  provider     Provider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  weekday      Int // 0 = Sunday ... 6 = Saturday
+  startMinutes Int // minutes after midnight, so 9:00 = 540
+  endMinutes   Int
+
+  @@index([providerId])
+}
+
+model Appointment {
+  id             String            @id @default(uuid()) @db.Uuid
+  providerId     String            @db.Uuid
+  provider       Provider          @relation(fields: [providerId], references: [id])
+  patientId      String            @db.Uuid
+  patient        Patient           @relation(fields: [patientId], references: [id])
+  visitTypeId    String            @db.Uuid
+  visitType      VisitType         @relation(fields: [visitTypeId], references: [id])
+  startsAt       DateTime          @db.Timestamptz(3)
+  endsAt         DateTime          @db.Timestamptz(3)
+  status         AppointmentStatus @default(SCHEDULED)
+  notes          String?
+  idempotencyKey String?           @unique
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  intakeForm IntakeForm?
+
+  @@index([providerId, startsAt])
+}
+
+model IntakeForm {
+  id            String       @id @default(uuid()) @db.Uuid
+  appointmentId String       @unique @db.Uuid
+  appointment   Appointment  @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  status        IntakeStatus @default(NOT_STARTED)
+  answers       Json?
+  completedAt   DateTime?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
 }
